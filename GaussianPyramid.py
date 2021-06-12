@@ -11,7 +11,7 @@ class GaussianPyramid:
         self.__BuildPyramids()
 
     @property
-    def original(self) -> list[np.ndarray]:
+    def original(self) -> np.ndarray:
         return self.__original
 
     @original.setter
