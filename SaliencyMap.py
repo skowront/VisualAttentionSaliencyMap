@@ -24,7 +24,7 @@ class SaliencyMap:
     # to 1:256 (scale 8) in eight octaves.
     def __init__(self, image: np.ndarray) -> None:
         self.__image = image
-        self.__intensityPyramid = self.__BuildIntensityPyramid(8)
+        self.__intensityPyramid = self.__BuildIntesityPyramid(8)
         self.__maxIntensityOverImage: np.float64 = self.__CalculateMaxIntensity()
         self.__colorRPyramid = self.__BuildColorRPyramid(8)
         self.__colorGPyramid = self.__BuildColorGPyramid(8)
@@ -34,13 +34,16 @@ class SaliencyMap:
         self.__orientation45Pyramid = self.__BuildOrientationPyramid(8, 45)
         self.__orientation90Pyramid = self.__BuildOrientationPyramid(8, 90)
         self.__orientation135Pyramid = self.__BuildOrientationPyramid(8, 135)
-        self.__BuildIntensityFeatureMaps()
-        self.__BuildColorFeatureMaps()
-        self.__BuildOrientationFeatureMaps()
+        self.__intensityFeatureMaps = self.__BuildIntensityFeatureMaps()
+        self.__colorFeatureMaps = self.__BuildColorFeatureMaps()
+        self.__orientationFeatureMaps = self.__BuildOrientationFeatureMaps()
         self.__conspicuityIntensityMap = self.__BuildConspicuityInensityMap()
         self.__conspicuityColorMap = self.__BuildConspicuityColorMap()
         self.__conspicuityOrientationMap = self.__BuildConspicuityOrientationMap()
         self.__saliencyMap = self.__BuildSaliencyMap()
+        self.__centers = [2, 3, 4]
+        self.__deltas = [3, 4]
+        self.__angles = [0, 45, 90, 135]
 
     @property
     def intensityPyramid(self):
@@ -88,14 +91,8 @@ class SaliencyMap:
     # I is used to create a Gaussian pyramid I(), where  2 [0::8]
     # is the scale.
     def __BuildIntensityPyramid(self, height: int) -> GaussianPyramid:
-        srcImg = copy.deepcopy(self.__image)
-        intensityImg = np.zeros(
-            shape=(srcImg.shape[0], srcImg.shape[1]), dtype=np.float64)
-        for i in range(0, len(srcImg)):
-            for j in range(0, len(srcImg[i])):
-                pixel = srcImg[i][j]
-                intensityImg[i][j] = np.float64(
-                    pixel[0]+pixel[1]+pixel[2])/3
+        r, g, b = self.__image[:, :, 0], self.__image[:, :, 1], self.__image[:, :, 2]
+        intensityImg = np.float64(r + g + b) / 3
         return GaussianPyramid(intensityImg, height)
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
@@ -116,49 +113,35 @@ class SaliencyMap:
     # R = r  (g + b)=2 for red
     def __BuildColorRPyramid(self, height: int) -> GaussianPyramid:
         srcImg = copy.deepcopy(self.__image)
-        img = np.zeros(
-            shape=(srcImg.shape[0], srcImg.shape[1]), dtype=np.float64)
         # normalization, i guess. If this becomes a problem just kick this double for loop out
         # Reason why we do this is marked above __CalculateMaxIntensity()
         for i in range(0, len(srcImg)):
             for j in range(0, len(srcImg[i])):
                 pixel = srcImg[i][j]
-                if self.__intensityPyramid.original[i][j] > 0.1*self.__maxIntensityOverImage:
+                if self.__intensityPyramid.original[i][j] > 0.1 * self.__maxIntensityOverImage:
                     srcImg[i][j] = srcImg[i][j] * \
-                        (1/self.intensityPyramid.original[i][j])
+                                   (1 / self.intensityPyramid.original[i][j])
         # channel separation
-        for i in range(0, len(srcImg)):
-            for j in range(0, len(srcImg[i])):
-                pixel = srcImg[i][j]
-                r = np.float64(pixel[0])
-                g = np.float64(pixel[1])
-                b = np.float64(pixel[2])
-                img[i][j] = np.float64(r-((g+b)/2))
-        return GaussianPyramid(img, height)
+        r, g, b = srcImg[:, :, 0], srcImg[:, :, 1], srcImg[:, :, 2]
+        R = np.float64(r - ((g + b) / 2))
+        return GaussianPyramid(R, height)
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # G = g(r + b)
     def __BuildColorGPyramid(self, height: int) -> GaussianPyramid:
         srcImg = copy.deepcopy(self.__image)
-        img = np.zeros(
-            shape=(srcImg.shape[0], srcImg.shape[1]), dtype=np.float64)
         # normalization, i guess. If this becomes a problem just kick this double for loop out
         # Reason why we do this is marked above __CalculateMaxIntensity()
         for i in range(0, len(srcImg)):
             for j in range(0, len(srcImg[i])):
                 pixel = srcImg[i][j]
-                if self.__intensityPyramid.original[i][j] > 0.1*self.__maxIntensityOverImage:
+                if self.__intensityPyramid.original[i][j] > 0.1 * self.__maxIntensityOverImage:
                     srcImg[i][j] = srcImg[i][j] * \
-                        (1/self.intensityPyramid.original[i][j])
+                                   (1 / self.intensityPyramid.original[i][j])
         # channel separation
-        for i in range(0, len(srcImg)):
-            for j in range(0, len(srcImg[i])):
-                pixel = srcImg[i][j]
-                r = np.float64(pixel[0])
-                g = np.float64(pixel[1])
-                b = np.float64(pixel[2])
-                img[i][j] = np.float64(g-((r+b)/2))
-        return GaussianPyramid(img, height)
+        r, g, b = srcImg[:, :, 0], srcImg[:, :, 1], srcImg[:, :, 2]
+        G = np.float64(g - ((r + b) / 2))
+        return GaussianPyramid(G, height)
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # B = b  (r + g)
@@ -169,44 +152,32 @@ class SaliencyMap:
         for i in range(0, len(srcImg)):
             for j in range(0, len(srcImg[i])):
                 pixel = srcImg[i][j]
-                if self.__intensityPyramid.original[i][j] > 0.1*self.__maxIntensityOverImage:
+                if self.__intensityPyramid.original[i][j] > 0.1 * self.__maxIntensityOverImage:
                     srcImg[i][j] = srcImg[i][j] * \
-                        (1/self.intensityPyramid.original[i][j])
+                                   (1 / self.intensityPyramid.original[i][j])
         # channel separation
-        img = np.zeros(
-            shape=(srcImg.shape[0], srcImg.shape[1]), dtype=np.float64)
-        for i in range(0, len(srcImg)):
-            for j in range(0, len(srcImg[i])):
-                pixel = srcImg[i][j]
-                r = np.float64(pixel[0])
-                g = np.float64(pixel[1])
-                b = np.float64(pixel[2])
-                img[i][j] = np.float64(b-((r+g)/2))
-        return GaussianPyramid(img, height)
+        r, g, b = srcImg[:, :, 0], srcImg[:, :, 1], srcImg[:, :, 2]
+        B = np.float64(b - ((r + g) / 2))
+        return GaussianPyramid(B, height)
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Y = (r + g)/2 - |r - g|/2 - b
     def __BuildColorYPyramid(self, height: int) -> GaussianPyramid:
         srcImg = copy.deepcopy(self.__image)
-        img = np.zeros(
-            shape=(srcImg.shape[0], srcImg.shape[1]), dtype=np.float64)
+
         # normalization, i guess. If this becomes a problem just kick this double for loop out
         # Reason why we do this is marked above __CalculateMaxIntensity()
         for i in range(0, len(srcImg)):
             for j in range(0, len(srcImg[i])):
                 pixel = srcImg[i][j]
-                if self.__intensityPyramid.original[i][j] > 0.1*self.__maxIntensityOverImage:
+                if self.__intensityPyramid.original[i][j] > 0.1 * self.__maxIntensityOverImage:
                     srcImg[i][j] = srcImg[i][j] * \
-                        (1/self.intensityPyramid.original[i][j])
+                                   (1 / self.intensityPyramid.original[i][j])
         # channel separation
-        for i in range(0, len(srcImg)):
-            for j in range(0, len(srcImg[i])):
-                pixel = srcImg[i][j]
-                r = np.float64(pixel[0])
-                g = np.float64(pixel[1])
-                b = np.float64(pixel[2])
-                img[i][j] = np.float64(((r+g)/2)-(abs(r-g)/2) - b)
-        return GaussianPyramid(img, height)
+        r, g, b = srcImg[:, :, 0], srcImg[:, :, 1], srcImg[:, :, 2]
+        Y = np.float64(((r + g) / 2) - (abs(r - g) / 2) - b)
+        Y = np.ndarray([y if y > 0 else 0 for y in Y])
+        return GaussianPyramid(Y, height)
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Local orientation information is obtained from I using
@@ -230,7 +201,7 @@ class SaliencyMap:
         ksize = 31
         kern = cv2.getGaborKernel((ksize, ksize), 4.0, theta,
                                   10.0, 0.5, 0, ktype=cv2.CV_32F)
-        kern /= 1.5*kern.sum()
+        kern /= 1.5 * kern.sum()
         filters.append(kern)
         return filters
 
@@ -253,9 +224,16 @@ class SaliencyMap:
     # are simultaneously computed (using a rectication) in a set of
     # six maps I(c; s), with c 2 f2; 3; 4g and s = c + ,  2 f3; 4g:
     # I(c; s) = jI (c) 	 I
-    def __BuildIntensityFeatureMaps(self):
-        # todo
-        pass
+    def __BuildIntensityFeatureMaps(self) -> list:
+        intensityFeatureMaps = []
+
+        for delta in self.__deltas:
+            for center in self.__centers:
+                pyramidCenter = self.__BuildIntensityPyramid(center)
+                pyramidScale = self.__BuildIntensityPyramid(center + delta)
+                intensityFeatureMaps.append(self.__CenterSurroundOperatorAbsolute(pyramidCenter, pyramidScale))
+
+        return intensityFeatureMaps
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # A second set of maps is similarly constructed for the color
@@ -271,27 +249,59 @@ class SaliencyMap:
     # blue/yellow and yellow/blue double opponency (Eq. 3):
     # RG(c; s) = j(R(c)  G(c)) 	 (G(s)  R(s))j (2)
     # BY(c; s) = j(B(c)  Y (c)) 	 (Y (s)
-    def __BuildColorFeatureMaps(self):
-        # todo
-        pass
+    def __BuildColorFeatureMaps(self) -> (list, list):
+        RG = []
+        BY = []
+
+        for delta in self.__deltas:
+            for center in self.__centers:
+                pyramidCenterR = self.__BuildColorRPyramid(center)
+                pyramidCenterG =  self.__BuildColorGPyramid(center)
+                pyramidCenterB =  self.__BuildColorBPyramid(center)
+                pyramidCenterY =  self.__BuildColorYPyramid(center)
+                pyramidScaleR = self.__BuildColorRPyramid(center + delta)
+                pyramidScaleG = self.__BuildColorGPyramid(center + delta)
+                pyramidScaleB = self.__BuildColorBPyramid(center + delta)
+                pyramidScaleY = self.__BuildColorYPyramid(center + delta)
+                RG.append(self.__CenterSurroundOperatorAbsolute(pyramidCenterR - pyramidCenterG, pyramidScaleG - pyramidScaleR))
+                BY.append(self.__CenterSurroundOperatorAbsolute(pyramidCenterB - pyramidCenterY, pyramidScaleY - pyramidScaleB))
+
+        return RG, BY
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Orientation
     # feature maps, O(c; s; ), encode, as a group, local orientation
     # contrast between the center and surround scales:
     # O(c; s; )=jO(c; )
-    def __BuildOrientationFeatureMaps(self):
-        # todo
-        pass
+    def __BuildOrientationFeatureMaps(self) -> list:
+        orientationFeatureMaps = []
+
+        for delta in self.__deltas:
+            for center in self.__centers:
+                for angle in self.__angles:
+                    # They may have to be built from Intensity type image tho
+                    pyramidCenter = self.__BuildOrientationPyramid(center, angle)
+                    pyramidScale = self.__BuildOrientationPyramid(center + delta, angle)
+                    orientationFeatureMaps.append(self.__CenterSurroundOperatorAbsolute(pyramidCenter, pyramidScale))
+
+        return orientationFeatureMaps
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Center-surround is implemented in the model as the dierence between ne and
     # coarse scales: The center is a pixel at scale c {2; 3; 4} ,and
     # the surround is the corresponding pixel at scale s = c + delta, with
     # delta {3; 4}
-    def __CenterSurroundOperator(self):
-        # todo
-        pass
+    def __CenterSurroundOperatorAbsolute(self, a: GaussianPyramid, b: GaussianPyramid) -> list[np.ndarray]:
+        higher_pyramid, lower_pyramid = (a, b) if a.height > b.height else (b, a)
+        higher_pyramid_layers = higher_pyramid.layers[higher_pyramid.height - lower_pyramid.height:]
+        input_size = lower_pyramid.original.shape
+        higher_pyramid_layers = self.__upscale(higher_pyramid_layers, input_size)
+        lower_pyramid_layers = self.__upscale(lower_pyramid.layers, input_size)
+
+        return [abs(ll - hl) for ll, hl in zip(lower_pyramid_layers, higher_pyramid_layers)]
+
+    def __upscale(self, layers: list[np.ndarray], dsize=()) -> list[np.ndarray]:
+        return [cv2.resize(layer, dsize) for layer in layers]
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # In the absence of top-down supervision, we propose a map
@@ -341,5 +351,5 @@ class SaliencyMap:
         s = np.zeros(nIDash.shape[:2])
         for i in range(0, len(nIDash)):
             for j in range(0, len(nIDash[i])):
-                s[i][j] = (nIDash[i][j]+nCDash[i][j]+nODash[i][j])/3
+                s[i][j] = (nIDash[i][j] + nCDash[i][j] + nODash[i][j]) / 3
         return s
