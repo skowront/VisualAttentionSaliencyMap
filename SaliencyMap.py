@@ -312,14 +312,14 @@ class SaliencyMap:
     def __BuildConspicuityInensityMap(self) -> np.ndarray:
         # todo
         # remove line below after todo implemetnation
-        return np.zeros(self.__image.shape)
+        return np.zeros(self.__image.shape[:2])
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Page 2, equation (6)
     def __BuildConspicuityColorMap(self) -> np.ndarray:
         # todo
         # remove line below after todo implemetnation
-        return np.zeros(self.__image.shape)
+        return np.zeros(self.__image.shape[:2])
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Page 2, equation (7)
@@ -327,7 +327,7 @@ class SaliencyMap:
     def __BuildConspicuityOrientationMap(self) -> np.ndarray:
         # todo
         # remove line below after todo implemetnation
-        return np.zeros(self.__image.shape)
+        return np.zeros(self.__image.shape[:2])
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Page 2, equation (8)
@@ -338,7 +338,7 @@ class SaliencyMap:
         nIDash = self.__NormalizeOperator(iDash)
         nCDash = self.__NormalizeOperator(cDash)
         nODash = self.__NormalizeOperator(oDash)
-        s = np.zeros(nIDash.shape)
+        s = np.zeros(nIDash.shape[:2])
         for i in range(0, len(nIDash)):
             for j in range(0, len(nIDash[i])):
                 s[i][j] = (nIDash[i][j]+nCDash[i][j]+nODash[i][j])/3

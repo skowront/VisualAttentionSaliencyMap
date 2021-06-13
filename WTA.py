@@ -37,10 +37,12 @@ class WTA:
                 image[i][j] = neuron.CurrentValue
         return image
 
+    # Resets the tournament state to inital.
     def Reset(self):
         self.__neuronArray = self.__NeuronArrayFromImage(self.__image)
         self.__currentWinner = Point()
 
+    # Converts a wb 2F1 image to a neuron array
     def __NeuronArrayFromImage(self, wbImage: np.ndarray) -> np.ndarray:
         neuronArray = np.zeros((wbImage.shape), dtype=Neuron)
         for i in range(0, len(neuronArray)):
@@ -51,6 +53,7 @@ class WTA:
                 neuronArray[i][j] = neuron
         return neuronArray
 
+    # Goes to the next winner.
     def Next(self):
         self.__currentWinner = self.__SelectWinner()
         self.__BlackOutArea(self.__currentWinner, self.__blackoutRadius)
@@ -59,6 +62,7 @@ class WTA:
                 neuron: Neuron = self.__neuronArray[i][j]
                 neuron.Regenerate()
 
+    # Blackouts an area with given center point and radius
     def __BlackOutArea(self, centerPoint: Point, radius: int):
         for i in range(0, len(self.__neuronArray)):
             for j in range(0, len(self.__neuronArray[i])):
@@ -69,6 +73,7 @@ class WTA:
                     neuron: Neuron = self.__neuronArray[i][j]
                     neuron.Zero()
 
+    # Selects a winner.
     def __SelectWinner(self) -> Point:
         cImage = self.currentImage
         max = cImage[0][0]
@@ -80,6 +85,7 @@ class WTA:
                     maxCoords = Point(i, j)
         return maxCoords
 
+    # Gets a given number of winners
     def GetWinnerPoints(self, count: int) -> List[Point]:
         self.Reset()
         winners = list()
@@ -89,19 +95,21 @@ class WTA:
             winners.append(winner)
         return winners
 
+    # Displays current state of the tournament.
     def ShowCurrent(self):
         cv2.imshow('Saliency map', self.currentImage)
         cv2.waitKey(0)
 
-    def AnnotateImage(self, image, winnerPoints, annotateCircles: bool = True, annotateArrows: bool = True, annotateIndexes: bool = True) -> np.ndarray:
+    # image must be a 2D array with float values.
+    # if you want to annotate an RGB image please use AnnotateImage
+    def Annotate2F1Image(self, image, winnerPoints, annotateCircles: bool = True, annotateArrows: bool = True, annotateIndexes: bool = True) -> np.ndarray:
         cImage = image
         img = np.zeros(
             (cImage.shape[0], cImage.shape[1], 3), np.float64)
-
-        rad = int(self.image.shape[0]/20)
+        rad = int(cImage.shape[0]/20)
         if rad < 1:
             rad = 1
-        thick = int(self.image.shape[0]/150)
+        thick = int(cImage.shape[0]/150)
         if thick < 1:
             thick = 1
         for i in range(0, len(img)):
@@ -129,6 +137,36 @@ class WTA:
                     winner.X, winner.Y), fontFace=font, fontScale=0.5, color=[0.0, 0.0, 1.0])
         return img
 
+    # Annotates any image with given winner points.
+    def AnnotateImage(self, image, winnerPoints, annotateCircles: bool = True, annotateArrows: bool = True, annotateIndexes: bool = True) -> np.ndarray:
+        img = copy.deepcopy(image)
+        rad = int(image.shape[0]/20)
+        if rad < 1:
+            rad = 1
+        thick = int(image.shape[0]/150)
+        if thick < 1:
+            thick = 1
+        if annotateArrows == True:
+            for i in range(0, len(winnerPoints)):
+                winner: Point = winnerPoints[i]
+                if i < len(winnerPoints)-1:
+                    nextWinner: Point = winnerPoints[i+1]
+                    cv2.arrowedLine(img=img, pt1=(winner.X, winner.Y),
+                                    pt2=(nextWinner.X, nextWinner.Y), color=[1.0, 0.0, 0.0], thickness=int(thick*0.8), tipLength=0.03, line_type=cv2.LINE_AA)
+        if annotateCircles == True:
+            for i in range(0, len(winnerPoints)):
+                winner: Point = winnerPoints[i]
+                cv2.circle(img=img, center=(winner.X, winner.Y),
+                           radius=rad, color=[0, 1.0, 1.0], thickness=thick, lineType=cv2.LINE_AA)
+        if annotateIndexes:
+            for i in range(0, len(winnerPoints)):
+                winner: Point = winnerPoints[i]
+                font = cv2.FONT_HERSHEY_SIMPLEX
+                cv2.putText(img=img, text=str(i), org=(
+                    winner.X, winner.Y), fontFace=font, fontScale=0.5, color=[0.0, 0.0, 1.0])
+        return img
+
+    # Test function for WTA.
     def Test():
         test = np.zeros(shape=(500, 500))
 
@@ -146,9 +184,9 @@ class WTA:
         for item in winners:
             print(item)
 
-        img = wta.AnnotateImage(wta.image, winners)
+        img = wta.Annotate2F1Image(wta.image, winners)
         cv2.imshow('Saliency map', img)
         cv2.waitKey(0)
 
-
-WTA.Test()
+# Uncomment to test WTA.
+# WTA.Test()
