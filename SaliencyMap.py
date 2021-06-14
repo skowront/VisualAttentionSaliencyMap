@@ -24,7 +24,10 @@ class SaliencyMap:
     # to 1:256 (scale 8) in eight octaves.
     def __init__(self, image: np.ndarray) -> None:
         self.__image = image
-        self.__intensityPyramid = self.__BuildIntesityPyramid(8)
+        self.__centers = [2, 3, 4]
+        self.__deltas = [3, 4]
+        self.__angles = [0, 45, 90, 135]
+        self.__intensityPyramid = self.__BuildIntensityPyramid(8)
         self.__maxIntensityOverImage: np.float64 = self.__CalculateMaxIntensity()
         self.__colorRPyramid = self.__BuildColorRPyramid(8)
         self.__colorGPyramid = self.__BuildColorGPyramid(8)
@@ -34,16 +37,13 @@ class SaliencyMap:
         self.__orientation45Pyramid = self.__BuildOrientationPyramid(8, 45)
         self.__orientation90Pyramid = self.__BuildOrientationPyramid(8, 90)
         self.__orientation135Pyramid = self.__BuildOrientationPyramid(8, 135)
-        self.__intensityFeatureMaps = self.__BuildIntensityFeatureMaps()
-        self.__colorFeatureMaps = self.__BuildColorFeatureMaps()
-        self.__orientationFeatureMaps = self.__BuildOrientationFeatureMaps()
+        self.intensityFeatureMaps = self.__BuildIntensityFeatureMaps()
+        self.colorFeatureMaps = self.__BuildColorFeatureMaps()
+        self.orientationFeatureMaps = self.__BuildOrientationFeatureMaps()
         self.__conspicuityIntensityMap = self.__BuildConspicuityInensityMap()
         self.__conspicuityColorMap = self.__BuildConspicuityColorMap()
         self.__conspicuityOrientationMap = self.__BuildConspicuityOrientationMap()
         self.__saliencyMap = self.__BuildSaliencyMap()
-        self.__centers = [2, 3, 4]
-        self.__deltas = [3, 4]
-        self.__angles = [0, 45, 90, 135]
 
     @property
     def intensityPyramid(self):
@@ -176,7 +176,12 @@ class SaliencyMap:
         # channel separation
         r, g, b = srcImg[:, :, 0], srcImg[:, :, 1], srcImg[:, :, 2]
         Y = np.float64(((r + g) / 2) - (abs(r - g) / 2) - b)
-        Y = np.ndarray([y if y > 0 else 0 for y in Y])
+
+        for i, ySub in enumerate(Y):
+            for j, y in enumerate(ySub):
+                if y < 0:
+                    Y[i][j] = 0
+
         return GaussianPyramid(Y, height)
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
@@ -291,7 +296,7 @@ class SaliencyMap:
     # coarse scales: The center is a pixel at scale c {2; 3; 4} ,and
     # the surround is the corresponding pixel at scale s = c + delta, with
     # delta {3; 4}
-    def __CenterSurroundOperatorAbsolute(self, a: GaussianPyramid, b: GaussianPyramid) -> list[np.ndarray]:
+    def __CenterSurroundOperatorAbsolute(self, a: GaussianPyramid, b: GaussianPyramid) -> list:
         higher_pyramid, lower_pyramid = (a, b) if a.height > b.height else (b, a)
         higher_pyramid_layers = higher_pyramid.layers[higher_pyramid.height - lower_pyramid.height:]
         input_size = lower_pyramid.original.shape
@@ -300,7 +305,7 @@ class SaliencyMap:
 
         return [abs(ll - hl) for ll, hl in zip(lower_pyramid_layers, higher_pyramid_layers)]
 
-    def __upscale(self, layers: list[np.ndarray], dsize=()) -> list[np.ndarray]:
+    def __upscale(self, layers: list, dsize=()) -> list:
         return [cv2.resize(layer, dsize) for layer in layers]
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
