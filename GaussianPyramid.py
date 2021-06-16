@@ -21,7 +21,7 @@ class GaussianPyramid:
         return
 
     @property
-    def layers(self) -> list[np.ndarray]:
+    def layers(self) -> list():
         return self.__layers
 
     @property
@@ -33,6 +33,12 @@ class GaussianPyramid:
         self.__height = value
         self.__BuildPyramids()
         return
+
+    def __sub__(self, other):
+        copy = GaussianPyramid(self.original, self.__height)
+        copy.__layers = [abs(a - b) for a, b in zip(self.layers, other.layers)]
+        copy.__original = copy.__layers[0]
+        return copy
 
     def __BuildPyramids(self):
         self.__layers = list()
@@ -49,7 +55,7 @@ class GaussianPyramid:
         sumHeight = self.layers[0].shape[0]
         for layer in layers:
             sumWidth = sumWidth + layer.shape[1]
-        if len(layer.shape) <= 2:
+        if len(layers[0].shape) <= 2:
             out = np.zeros((sumHeight, sumWidth))
         else:
             out = np.zeros((sumHeight, sumWidth, len(layers[0][0][0])))
