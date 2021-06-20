@@ -364,7 +364,7 @@ class SaliencyMap:
         return [abs(ll - hl) for ll, hl in zip(lower_pyramid_layers, higher_pyramid_layers)]
 
     def __upscale(self, layers: list, dsize=()) -> list:
-        return [cv2.resize(layer, dsize) for layer in layers]
+        return [cv2.resize(layer, (dsize[1], dsize[0])) for layer in layers]
 
     def __NormalizeOperator(self, image: np.ndarray) -> np.ndarray:
         max = image[0][0]
