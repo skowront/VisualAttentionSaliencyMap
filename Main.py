@@ -26,17 +26,17 @@ saliencyMap = SaliencyMap(image)
 
 # todo Here you can show other saliency map steps.
 
-# cv2.imshow('Saliency map', saliencyMap.saliencyMap)
-# cv2.waitKey(0)
+cv2.imshow('Saliency map', saliencyMap.saliencyMap)
+cv2.waitKey(0)
 
 # todo when the saliency map is ready please uncomment:
-# winnerCount = 10  # select how many winners do you want to have, to search for a loop just pass some insanely huge number
-# wta = WTA(saliencyMap.saliencyMap, 100)
-# winners = wta.GetWinnerPoints(winnerCount)
-# annotatedOriginalImage = wta.AnnotateImage(
-#     image, winners)
-# cv2.imshow('Annotated original image', annotatedOriginalImage)
-# cv2.waitKey(0)
-# annotatedSaliencyMap = wta.Annotate2F1Image(saliencyMap.saliencyMap, winners)
-# cv2.imshow('Annotated saliency map', annotatedSaliencyMap)
-# cv2.waitKey(0)
+winnerCount = 10  # select how many winners do you want to have, to search for a loop just pass some insanely huge number
+wta = WTA(saliencyMap.saliencyMap, 100)
+winners = wta.GetWinnerPoints(winnerCount)
+annotatedOriginalImage = wta.AnnotateImage(
+    image, winners)
+cv2.imshow('Annotated original image', annotatedOriginalImage)
+cv2.waitKey(0)
+annotatedSaliencyMap = wta.Annotate2F1Image(saliencyMap.saliencyMap, winners)
+cv2.imshow('Annotated saliency map', annotatedSaliencyMap)
+cv2.waitKey(0)

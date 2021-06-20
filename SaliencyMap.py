@@ -310,77 +310,264 @@ class SaliencyMap:
     def __upscale(self, layers: list, dsize=()) -> list:
         return [cv2.resize(layer, dsize) for layer in layers]
 
-    # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
-    # In the absence of top-down supervision, we propose a map
-    # normalization operator, N (:), which globally promotes maps
-    # in which a small number of strong peaks of activity (conspicuous locations) is present, while globally suppressing maps which
-    # contain numerous comparable peak responses. N (:) consists of
-    # (Fig. 2): 1) Normalizing the values in the map to a xed range
-    # [0::M], in order to eliminate modality-dependent amplitude differences; 2) nding the location of the map's global maximum
-    # M and computing the average m of all its other local maxima;
-    # 3) globally multiplying the map by (M-m)^2.
     def __NormalizeOperator(self, image: np.ndarray) -> np.ndarray:
-        # todo
-        # remove line below after todo implemetnat
+        max = image[0][0]
+        for i in range(0, len(image)):
+            for j in range(0, len(image[i])):
+                if image[i][j] > max:
+                    max = image[i][j]
+
+        if max == 0:
+            max =1
+
+        for i in range(0, len(image)):
+            for j in range(0, len(image[i])):
+                image[i][j]/=max
+
         return image
 
-    def __AcrossScaleAdditionOperatorMagicIntensity(self, featureMaps: list, scaleStart: int, scaleEnd: int) -> np.ndarray:
-        output = np.zeros(np.array(featureMaps[0]).shape)
+    # def __AcrossScaleAdditionOperatorIntensity(self, featureMaps: list) -> np.ndarray:
+    #     output = np.zeros(np.array(featureMaps[0]).shape)
+    #     outputFlat = np.zeros(np.array(featureMaps[0]).shape[:2])
+    #
+    #     # finding local maxes in each feature map
+    #     localMaxes = []
+    #     globalMax = map[0][0][0]
+    #     for map in featureMaps:
+    #         localMax = map[0][0][0]
+    #         for i in range(0, len(map)):
+    #             for j in range(0, len(map)):
+    #                 if map[i][j][0] > localMax:
+    #                     localMax = map[i][j][0]
+    #
+    #         # adding local maxes to the list
+    #         localMaxes.append(localMax)
+    #         if localMax > globalMax:
+    #             globalMax = localMax
+    #
+    #     # mean of local maxes and (M-m)^2
+    #     meanlocalMax = sum(localMaxes) / len(localMaxes)
+    #     factor = pow((globalMax - meanlocalMax), 2)
+    #
+    #     # normalization to global max M
+    #     for map in featureMaps:
+    #         for i in range(0, len(map)):
+    #             for j in range(0, len(map)):
+    #                 map[i][j][0] /= globalMax
+    #
+    #     # global multiplication of the map
+    #     for map in featureMaps:
+    #         for i in range(0, len(map)):
+    #             for j in range(0, len(map)):
+    #                 map[i][j][0] *= factor
+    #
+    #     # across-scale point by point addition
+    #     for i in range(0, len(output)):
+    #         for j in range(0, len(output[i])):
+    #             for map in featureMaps:
+    #                 output[i][j][0] += map[i][j][0]
+    #
+    #     # to flat
+    #     for i in range(0, len(output)):
+    #         for j in range(0, len(output)):
+    #             outputFlat[i][j] = output[i][j][0]
+    #
+    #     return outputFlat
 
-        #finding local maxes in each feature map
+    # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
+    # Page 2, equation (5)
+    def __BuildConspicuityInensityMap(self) -> np.ndarray:
+        featureMaps = self.__intensityFeatureMaps
+        output = np.zeros(np.array(featureMaps[0]).shape)
+        outputFlat = np.zeros(np.array(featureMaps[0]).shape[:2])
+
+        # finding local maxes in each feature map
         localMaxes = []
+        globalMax = featureMaps[0][0][0][0]
         for map in featureMaps:
-            globalMax = localMax = map[0][0][0]
+            localMax = map[0][0][0]
             for i in range(0, len(map)):
                 for j in range(0, len(map)):
                     if map[i][j][0] > localMax:
                         localMax = map[i][j][0]
 
-            #adding local maxes to the list
+            # adding local maxes to the list
             localMaxes.append(localMax)
             if localMax > globalMax:
                 globalMax = localMax
 
-        #mean of local maxes and (M-m)^2
-        meanlocalMax = sum(localMaxes)/len(localMaxes)
-        factor = pow((globalMax - meanlocalMax),2)
+        # mean of local maxes and (M-m)^2
+        meanlocalMax = sum(localMaxes) / len(localMaxes)
+        factor = pow((globalMax - meanlocalMax), 2)
 
-        #normalization to global max M
+        # normalization to global max M
         for map in featureMaps:
             for i in range(0, len(map)):
                 for j in range(0, len(map)):
-                    map[i][j][0]/=globalMax
+                    map[i][j][0] /= globalMax
 
-        #global multiplication of the map
+        # global multiplication of the map
         for map in featureMaps:
             for i in range(0, len(map)):
                 for j in range(0, len(map)):
-                    map[i][j][0]*=factor
+                    map[i][j][0] *= factor
 
-        for index in range(scaleStart, scaleEnd):
-            output = [a + b for a, b in zip(featureMaps[index], output)]
+        # across-scale point by point addition
+        for i in range(0, len(output)):
+            for j in range(0, len(output[i])):
+                for map in featureMaps:
+                    output[i][j][0] += map[i][j][0]
 
-        return np.array(output)
+        # to flat
+        for i in range(0, len(output)):
+            for j in range(0, len(output)):
+                outputFlat[i][j] = output[i][j][0]
 
-    # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
-    # Page 2, equation (5)
-    def __BuildConspicuityInensityMap(self) -> np.ndarray:
-        return self.__AcrossScaleAdditionOperatorMagicIntensity(self.__intensityFeatureMaps, 2, 4)
+        return outputFlat
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Page 2, equation (6)
     def __BuildConspicuityColorMap(self) -> np.ndarray:
-        # todo
-        # remove line below after todo implemetnation
-        return np.zeros(self.__image.shape[:2])
+        # for RG
+        featureMapsRG = self.__colorFeatureMaps[0]
+        output = np.zeros(np.array(featureMapsRG[0]).shape)
+        outputFlat = np.zeros(np.array(featureMapsRG[0]).shape[:2])
+
+        # finding local maxes in each feature map
+        localMaxes = []
+        globalMax = featureMapsRG[0][0][0][0]
+        for map in featureMapsRG:
+            localMax = map[0][0][0]
+            for i in range(0, len(map)):
+                for j in range(0, len(map)):
+                    if map[i][j][0] > localMax:
+                        localMax = map[i][j][0]
+
+            # adding local maxes to the list
+            localMaxes.append(localMax)
+            if localMax > globalMax:
+                globalMax = localMax
+
+        # mean of local maxes and (M-m)^2
+        meanlocalMax = sum(localMaxes) / len(localMaxes)
+        factor = pow((globalMax - meanlocalMax), 2)
+
+        # normalization to global max M
+        for map in featureMapsRG:
+            for i in range(0, len(map)):
+                for j in range(0, len(map)):
+                    map[i][j][0] /= globalMax
+
+        # global multiplication of the map
+        for map in featureMapsRG:
+            for i in range(0, len(map)):
+                for j in range(0, len(map)):
+                    map[i][j][0] *= factor
+
+        ###############################################################################################################
+        # for BY
+        featureMapsBY = self.__colorFeatureMaps[1]
+        output = np.zeros(np.array(featureMapsBY[0]).shape)
+        outputFlat = np.zeros(np.array(featureMapsBY[0]).shape[:2])
+
+        # finding local maxes in each feature map
+        localMaxes = []
+        globalMax = featureMapsBY[0][0][0][0]
+        for map in featureMapsBY:
+            localMax = map[0][0][0]
+            for i in range(0, len(map)):
+                for j in range(0, len(map)):
+                    if map[i][j][0] > localMax:
+                        localMax = map[i][j][0]
+
+            # adding local maxes to the list
+            localMaxes.append(localMax)
+            if localMax > globalMax:
+                globalMax = localMax
+
+        # mean of local maxes and (M-m)^2
+        meanlocalMax = sum(localMaxes) / len(localMaxes)
+        factor = pow((globalMax - meanlocalMax), 2)
+
+        # normalization to global max M
+        for map in featureMapsBY:
+            for i in range(0, len(map)):
+                for j in range(0, len(map)):
+                    map[i][j][0] /= globalMax
+
+        # global multiplication of the map
+        for map in featureMapsBY:
+            for i in range(0, len(map)):
+                for j in range(0, len(map)):
+                    map[i][j][0] *= factor
+
+
+
+        # across-scale point by point addition
+        sumMap = [a + b for a, b in zip(featureMapsRG, featureMapsBY)]
+        for i in range(0, len(output)):
+            for j in range(0, len(output[i])):
+                for map in sumMap:
+                    output[i][j][0] += map[i][j][0]
+
+        # to flat
+        for i in range(0, len(output)):
+            for j in range(0, len(output)):
+                outputFlat[i][j] = output[i][j][0]
+
+        return outputFlat
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Page 2, equation (7)
 
     def __BuildConspicuityOrientationMap(self) -> np.ndarray:
-        # todo
-        # remove line below after todo implemetnation
-        return np.zeros(self.__image.shape[:2])
+        featureMaps = self.__orientationFeatureMaps
+        output = np.zeros(np.array(featureMaps[0]).shape)
+        outputFlat = np.zeros(np.array(featureMaps[0]).shape[:2])
+
+        # finding local maxes in each feature map
+        localMaxes = []
+        globalMax = featureMaps[0][0][0][0]
+        for map in featureMaps:
+            localMax = map[0][0][0]
+            for i in range(0, len(map)):
+                for j in range(0, len(map)):
+                    if map[i][j][0] > localMax:
+                        localMax = map[i][j][0]
+
+            # adding local maxes to the list
+            localMaxes.append(localMax)
+            if localMax > globalMax:
+                globalMax = localMax
+
+        # mean of local maxes and (M-m)^2
+        meanlocalMax = sum(localMaxes) / len(localMaxes)
+        factor = pow((globalMax - meanlocalMax), 2)
+
+        # normalization to global max M
+        for map in featureMaps:
+            for i in range(0, len(map)):
+                for j in range(0, len(map)):
+                    map[i][j][0] /= globalMax
+
+        # global multiplication of the map
+        for map in featureMaps:
+            for i in range(0, len(map)):
+                for j in range(0, len(map)):
+                    map[i][j][0] *= factor
+
+        # across-scale point by point addition
+        for i in range(0, len(output)):
+            for j in range(0, len(output[i])):
+                for map in featureMaps:
+                    output[i][j][0] += map[i][j][0]
+
+        # to flat
+        for i in range(0, len(output)):
+            for j in range(0, len(output)):
+                outputFlat[i][j] = output[i][j][0]
+
+        return outputFlat
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Page 2, equation (8)
