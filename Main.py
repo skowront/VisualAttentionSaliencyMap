@@ -31,7 +31,7 @@ cv2.waitKey(0)
 
 # todo when the saliency map is ready please uncomment:
 winnerCount = 10  # select how many winners do you want to have, to search for a loop just pass some insanely huge number
-wta = WTA(saliencyMap.saliencyMap, 100)
+wta = WTA(saliencyMap.saliencyMap, 20)
 winners = wta.GetWinnerPoints(winnerCount)
 annotatedOriginalImage = wta.AnnotateImage(
     image, winners)

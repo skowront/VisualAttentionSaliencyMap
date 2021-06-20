@@ -79,7 +79,7 @@ class WTA:
         max = cImage[0][0]
         maxCoords = Point(0, 0)
         for i in range(0, len(cImage)):
-            for j in range(0, len(cImage)):
+            for j in range(0, len(cImage[i])):
                 if cImage[i][j] > max:
                     max = cImage[i][j]
                     maxCoords = Point(i, j)
