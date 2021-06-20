@@ -16,9 +16,9 @@ import copy
 
 
 class WTA:
-    def __init__(self, wbImage: np.ndarray, blackoutRadius: int) -> None:
+    def __init__(self, wbImage: np.ndarray, blackoutRadius: int, regenerationTime: int) -> None:
         self.__image = wbImage
-        self.__regenerationTime = 10
+        self.__regenerationTime = regenerationTime
         self.__blackoutRadius = blackoutRadius
         self.__neuronArray = self.__NeuronArrayFromImage(self.__image)
         self.__currentWinner = Point()
@@ -79,7 +79,7 @@ class WTA:
         max = cImage[0][0]
         maxCoords = Point(0, 0)
         for i in range(0, len(cImage)):
-            for j in range(0, len(cImage)):
+            for j in range(0, len(cImage[i])):
                 if cImage[i][j] > max:
                     max = cImage[i][j]
                     maxCoords = Point(i, j)
@@ -137,7 +137,14 @@ class WTA:
                     winner.X, winner.Y), fontFace=font, fontScale=0.5, color=[0.0, 0.0, 1.0])
         return img
 
-    # Annotates any image with given winner points.
+    def WinnerPointsToAnnotationPoints(self, winnerPoints) -> List:
+        annotations = []
+        for i in range(0, len(winnerPoints)):
+            pt: Point = winnerPoints[i]
+            annotations.append(Point(pt.Y, pt.X))
+        return annotations
+        # Annotates any image with given winner points.
+
     def AnnotateImage(self, image, winnerPoints, annotateCircles: bool = True, annotateArrows: bool = True, annotateIndexes: bool = True) -> np.ndarray:
         img = copy.deepcopy(image)
         rad = int(image.shape[0]/20)
