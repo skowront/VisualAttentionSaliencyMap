@@ -261,15 +261,17 @@ class SaliencyMap:
         for delta in self.__deltas:
             for center in self.__centers:
                 pyramidCenterR = self.__BuildColorRPyramid(center)
-                pyramidCenterG =  self.__BuildColorGPyramid(center)
-                pyramidCenterB =  self.__BuildColorBPyramid(center)
-                pyramidCenterY =  self.__BuildColorYPyramid(center)
+                pyramidCenterG = self.__BuildColorGPyramid(center)
+                pyramidCenterB = self.__BuildColorBPyramid(center)
+                pyramidCenterY = self.__BuildColorYPyramid(center)
                 pyramidScaleR = self.__BuildColorRPyramid(center + delta)
                 pyramidScaleG = self.__BuildColorGPyramid(center + delta)
                 pyramidScaleB = self.__BuildColorBPyramid(center + delta)
                 pyramidScaleY = self.__BuildColorYPyramid(center + delta)
-                RG.append(self.__CenterSurroundOperatorAbsolute(pyramidCenterR - pyramidCenterG, pyramidScaleG - pyramidScaleR))
-                BY.append(self.__CenterSurroundOperatorAbsolute(pyramidCenterB - pyramidCenterY, pyramidScaleY - pyramidScaleB))
+                RG.append(self.__CenterSurroundOperatorAbsolute(pyramidCenterR - pyramidCenterG,
+                                                                pyramidScaleG - pyramidScaleR))
+                BY.append(self.__CenterSurroundOperatorAbsolute(pyramidCenterB - pyramidCenterY,
+                                                                pyramidScaleY - pyramidScaleB))
 
         return RG, BY
 
@@ -322,17 +324,48 @@ class SaliencyMap:
         # remove line below after todo implemetnat
         return image
 
-    def __AcrossScaleAdditionOperator(self, featureMap: list, scaleStart:int, scaleEnd: int) -> np.ndarray:
-        output = np.zeros(np.array(featureMap[0]).shape)
+    def __AcrossScaleAdditionOperatorMagicIntensity(self, featureMaps: list, scaleStart: int, scaleEnd: int) -> np.ndarray:
+        output = np.zeros(np.array(featureMaps[0]).shape)
+
+        #finding local maxes in each feature map
+        localMaxes = []
+        for map in featureMaps:
+            globalMax = localMax = map[0][0][0]
+            for i in range(0, len(map)):
+                for j in range(0, len(map)):
+                    if map[i][j][0] > localMax:
+                        localMax = map[i][j][0]
+
+            #adding local maxes to the list
+            localMaxes.append(localMax)
+            if localMax > globalMax:
+                globalMax = localMax
+
+        #mean of local maxes and (M-m)^2
+        meanlocalMax = sum(localMaxes)/len(localMaxes)
+        factor = pow((globalMax - meanlocalMax),2)
+
+        #normalization to global max M
+        for map in featureMaps:
+            for i in range(0, len(map)):
+                for j in range(0, len(map)):
+                    map[i][j][0]/=globalMax
+
+        #global multiplication of the map
+        for map in featureMaps:
+            for i in range(0, len(map)):
+                for j in range(0, len(map)):
+                    map[i][j][0]*=factor
+
         for index in range(scaleStart, scaleEnd):
-            output = [a + b for a, b in zip(featureMap[index], output)]
-            
-        return output
+            output = [a + b for a, b in zip(featureMaps[index], output)]
+
+        return np.array(output)
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Page 2, equation (5)
     def __BuildConspicuityInensityMap(self) -> np.ndarray:
-        return self.__AcrossScaleAdditionOperator(self.__intensityFeatureMaps, 2, 4)
+        return self.__AcrossScaleAdditionOperatorMagicIntensity(self.__intensityFeatureMaps, 2, 4)
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Page 2, equation (6)
