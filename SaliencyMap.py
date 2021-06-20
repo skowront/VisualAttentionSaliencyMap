@@ -37,9 +37,9 @@ class SaliencyMap:
         self.__orientation45Pyramid = self.__BuildOrientationPyramid(8, 45)
         self.__orientation90Pyramid = self.__BuildOrientationPyramid(8, 90)
         self.__orientation135Pyramid = self.__BuildOrientationPyramid(8, 135)
-        self.intensityFeatureMaps = self.__BuildIntensityFeatureMaps()
-        self.colorFeatureMaps = self.__BuildColorFeatureMaps()
-        self.orientationFeatureMaps = self.__BuildOrientationFeatureMaps()
+        self.__intensityFeatureMaps = self.__BuildIntensityFeatureMaps()
+        self.__colorFeatureMaps = self.__BuildColorFeatureMaps()
+        self.__orientationFeatureMaps = self.__BuildOrientationFeatureMaps()
         self.__conspicuityIntensityMap = self.__BuildConspicuityInensityMap()
         self.__conspicuityColorMap = self.__BuildConspicuityColorMap()
         self.__conspicuityOrientationMap = self.__BuildConspicuityOrientationMap()
@@ -322,12 +322,17 @@ class SaliencyMap:
         # remove line below after todo implemetnat
         return image
 
+    def __AcrossScaleAdditionOperator(self, featureMap: list, scale: int) -> np.ndarray:
+        output = np.zeros(np.array(featureMap[0]).shape)
+        for index in range(scale):
+            output = [a + b for a, b in zip(featureMap[index], output)]
+
+        return output
+
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Page 2, equation (5)
     def __BuildConspicuityInensityMap(self) -> np.ndarray:
-        # todo
-        # remove line below after todo implemetnation
-        return np.zeros(self.__image.shape[:2])
+        return self.__AcrossScaleAdditionOperator(self.__intensityFeatureMaps, 4)
 
     # A Model of Saliency-based Visual Attention for Rapid Scene Analysis:
     # Page 2, equation (6)
