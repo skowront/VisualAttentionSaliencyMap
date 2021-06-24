@@ -41,3 +41,8 @@ cv2.waitKey(0)
 annotatedSaliencyMap = wta.Annotate2F1Image(saliencyMap.saliencyMap, winners)
 cv2.imshow('Annotated saliency map', annotatedSaliencyMap)
 cv2.waitKey(0)
+
+print("Salient points:")
+for i in range(0, len(winners)):
+    point: Point = winners[i]
+    point.Print()
