@@ -15,6 +15,8 @@ import cv2
 import copy
 import sys
 
+from progressBar import printProgressBar
+
 
 class SaliencyMap:
 
@@ -24,6 +26,9 @@ class SaliencyMap:
     # and vertical image reduction factors ranging from 1:1 (scale 0)
     # to 1:256 (scale 8) in eight octaves.
     def __init__(self, image: np.ndarray) -> None:
+        progressLen = 14
+        printProgressBar(0, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__image = image
         self.__centers = [2, 3, 4]
         self.__deltas = [3, 4]
@@ -32,32 +37,60 @@ class SaliencyMap:
         self.__maxIntensityOverImage: np.float64 = self.__CalculateMaxIntensity()
         self.__colorRPyramid = self.__BuildColorRPyramid(8)
         print("RPyramid")
+        printProgressBar(1, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__colorGPyramid = self.__BuildColorGPyramid(8)
         print("GPyramid")
+        printProgressBar(2, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__colorBPyramid = self.__BuildColorBPyramid(8)
         print("BPyramid")
+        printProgressBar(3, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__colorYPyramid = self.__BuildColorYPyramid(8)
         print("YPyramid")
+        printProgressBar(4, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__orientation0Pyramid = self.__BuildOrientationPyramid(8, 0)
         print("O0Pyramid")
+        printProgressBar(5, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__orientation45Pyramid = self.__BuildOrientationPyramid(8, 45)
         print("O45Pyramid")
+        printProgressBar(6, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__orientation90Pyramid = self.__BuildOrientationPyramid(8, 90)
         print("O90Pyramid")
+        printProgressBar(7, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__orientation135Pyramid = self.__BuildOrientationPyramid(8, 135)
         print("O135Pyramid")
+        printProgressBar(8, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__intensityFeatureMaps = self.__BuildIntensityFeatureMaps()
         print("IFeature")
+        printProgressBar(9, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__colorFeatureMaps = self.__BuildColorFeatureMaps()
         print("CFeature")
+        printProgressBar(10, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__orientationFeatureMaps = self.__BuildOrientationFeatureMaps()
         print("OFeature")
+        printProgressBar(11, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__conspicuityIntensityMap = self.__BuildConspicuityInensityMap()
         print("IDashPyramid")
+        printProgressBar(12, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__conspicuityColorMap = self.__BuildConspicuityColorMap()
         print("CDashPyramid")
+        printProgressBar(13, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__conspicuityOrientationMap = self.__BuildConspicuityOrientationMap()
         print("ODashPyramid")
+        printProgressBar(14, progressLen, prefix='Progress:',
+                         suffix='Complete', length=50)
         self.__saliencyMap = self.__BuildSaliencyMap()
 
     @property

@@ -7,7 +7,7 @@ import numpy as np
 import cv2
 import copy
 
-path = r'images\\i1.jpg'
+path = r'localImages\\originals\\sun_baexsqstopvlczqa.jpg'
 image = cv2.imread(path)
 #!!! We want only 0.0-1.0 images in the saliency map or things starts to crack
 # Never, ever use any other pixel-representation format than 0.0-1.0 float64
